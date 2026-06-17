@@ -1,11 +1,12 @@
-import pygame, moderngl, array, time
+import pygame, moderngl, array, time, random, math
 
 from src.util import *
+from src.verlet import VerletStrip
 
 pygame.init()
 
 WIDTH, HEIGHT = 640, 640
-SCALE = 4
+SCALE = 1
 
 class App:
     def __init__(self):
@@ -40,6 +41,10 @@ class App:
         
         self.assets = {}
     
+    @staticmethod
+    def distance(p0, p1):
+        return math.sqrt((p0['x'] - p1['x'])**2 + (p0['y'] - p1['y'])**2)
+    
     def setup_gl(self):
         vert_src = ""
         frag_src = ""
@@ -63,6 +68,9 @@ class App:
         self.screenTex.release()
         pygame.quit()
         sys.exit()
+    
+    def update(self):
+        pass
 
     def run(self):
         while True:
@@ -87,6 +95,7 @@ class App:
             self.last_time = time.time()
             
             self.screen.fill((0, 0, 0))
+            self.update()
             self.screenTex.write(self.screen.get_view('1'))
             self.screenTex.use(0)
 
@@ -94,7 +103,7 @@ class App:
             self.vao.render(moderngl.TRIANGLE_STRIP)
 
             pygame.display.flip()
-            pygame.display.set_caption("Pygmy")
+            pygame.display.set_caption("Flappy Snake")
 
 if __name__ == "__main__":
     App().run()
