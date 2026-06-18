@@ -5,4 +5,7 @@ out vec4 FragColor;
 
 uniform sampler2D snakeTex;
 
-void main() { FragColor = texture(snakeTex, TexCoord); }
+void main() {
+  vec4 texSample = texture(snakeTex, vec2(TexCoord.x, TexCoord.y));
+  FragColor = texSample;
+}

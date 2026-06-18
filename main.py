@@ -28,15 +28,26 @@ class App:
         self.vao = None
         self.setup_gl()
         self.setup_framebuffer()
+        self.snake = Snake([500, 50])
+        self.setup_snake_gl()
         
         self.clock = pygame.time.Clock()
 
         self.dt = 1
         self.last_time = time.time() - 1/60
         
-        self.assets = {}
+        self.assets = {
+            "snake": load_image("snake.png")
+        }
 
-        self.snake = Snake([500, 50])
+        self.snakeAnim = self.ctx.texture(self.assets["snake"].get_size(), 4)
+        self.snakeAnim.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        self.snakeAnim.swizzle = "BGRA"
+        self.snakeAnim.write(self.assets["snake"].get_view('1'))
+        self.snakeAnim.use(1)
+        self.snakeAnim.repeat_x = True
+        self.snakeAnim.repeat_y = False
+
     
     def create_prog(self, vert_path, frag_path):
         vert_src = ""
@@ -66,11 +77,22 @@ class App:
         self.screenTex.swizzle = "BGRA"
         self.screenTex.repeat_x = False
         self.screenTex.repeat_y = False
-        self.fbo = self.ctx.framebuffer(color_attachments=[self.screenTex])
+
+        self.snakeTex = self.ctx.texture(self.screen.get_size(), 4)
+        self.snakeTex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        self.snakeTex.swizzle = "BGRA"
+        self.fbo = self.ctx.framebuffer(color_attachments=[self.snakeTex])
 
     def setup_snake_gl(self):
         self.snake_prog = self.create_prog("data/shaders/snake.vert", "data/shaders/snake.frag")
         self.snake_prog["snakeTex"].value = 1
+
+        num_vertices = len(self.snake.points) * 2 
+        self.snake_vbo = self.ctx.buffer(reserve=num_vertices * 4 * 4)
+        self.snake_vao = self.ctx.vertex_array(
+            self.snake_prog,
+            [(self.snake_vbo, "2f 2f", "aPos", "aTexCoord")]
+        )
     
     def close(self):
         self.screenTex.release()
@@ -79,7 +101,7 @@ class App:
     
     def update(self):
         self.snake.update()
-        self.snake.draw(self.screen, [0, 0])
+        # self.snake.draw(self.screen, [0, 0])
 
     def run(self):
         while True:
@@ -93,19 +115,28 @@ class App:
                     self.display = pygame.display.set_mode((width, height), flags=pygame.RESIZABLE | pygame.OPENGL | pygame.DOUBLEBUF)
                     self.screen = pygame.Surface((width // SCALE, height // SCALE))
                     self.screenTex.release()
+                    self.snakeTex.release()
                     self.setup_framebuffer()
             
             self.dt = (time.time() - self.last_time) * 60
             self.dt = min(self.dt, 3) # if you're under 20 fps you're screwed anyway tbh
             self.last_time = time.time()
             
-            self.screen.fill((100, 0, 0))
+
+            self.screen.fill((100, 0, 0, 255))
             self.update()
             self.screenTex.write(self.screen.get_view('1'))
-            self.screenTex.use(0)
 
             self.ctx.clear(0, 0, 0)
+            self.ctx.blend_func = moderngl.ONE, moderngl.ZERO
+            self.screenTex.use(0)
             self.vao.render(moderngl.TRIANGLE_STRIP)
+
+            self.snake_vbo.write(self.snake.get_quad_mesh())
+
+            self.snake_prog["res"].value = (self.screen.get_width(), self.screen.get_height())
+            self.snake_prog["snakeTex"].value = 1
+            self.snake_vao.render(moderngl.TRIANGLE_STRIP)
 
             pygame.display.flip()
             pygame.display.set_caption("Flappy Snake")
