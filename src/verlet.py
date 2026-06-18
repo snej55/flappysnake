@@ -2,7 +2,7 @@ import pygame, math
 
 BOUNCE = 0.9
 FRICTION = 0.999
-GRAVITY = 0.5
+GRAVITY = 0.001
 
 class VerletStrip:
     def __init__(self, points: list[dict] = [], sticks: list[dict] = []):
@@ -17,7 +17,7 @@ class VerletStrip:
                 point["prev_x"] = point["x"]
                 point["prev_y"] = point["y"]
                 point["x"] += vx
-                point["y"] += vy 
+                point["y"] += vy + GRAVITY
     
     # collisions
     def constrain_points(self):
